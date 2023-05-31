@@ -6,14 +6,14 @@ const coinGeckoCoinId = args[1]
 const coinPaprikaCoinId = args[2]
 const badApiCoinId = args[3]
 
-if (
-  secrets.apiKey == "" ||
-  secrets.apiKey === "Your coinmarketcap API key (get a free one: https://coinmarketcap.com/api/)"
-) {
-  throw Error(
-    "COINMARKETCAP_API_KEY environment variable not set for CoinMarketCap API.  Get a free key from https://coinmarketcap.com/api/"
-  )
-}
+// if (
+//   secrets.apiKey == "" ||
+//   secrets.apiKey === "Your coinmarketcap API key (get a free one: https://coinmarketcap.com/api/)"
+// ) {
+//   throw Error(
+//     "COINMARKETCAP_API_KEY environment variable not set for CoinMarketCap API.  Get a free key from https://coinmarketcap.com/api/"
+//   )
+// }
 
 // To make an HTTP request, use the Functions.makeHttpRequest function
 // Functions.makeHttpRequest function parameters:
@@ -26,11 +26,11 @@ if (
 // - responseType: expected response type (optional, defaults to 'json')
 
 // Use multiple APIs & aggregate the results to enhance decentralization
-const coinMarketCapRequest = Functions.makeHttpRequest({
-  url: `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?convert=USD&id=${coinMarketCapCoinId}`,
-  // Get a free API key from https://coinmarketcap.com/api/
-  headers: { "X-CMC_PRO_API_KEY": secrets.apiKey },
-})
+// const coinMarketCapRequest = Functions.makeHttpRequest({
+//   url: `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?convert=USD&id=${coinMarketCapCoinId}`,
+//   // Get a free API key from https://coinmarketcap.com/api/
+//   headers: { "X-CMC_PRO_API_KEY": secrets.apiKey },
+// })
 const coinGeckoRequest = Functions.makeHttpRequest({
   url: `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoCoinId}&vs_currencies=usd`,
 })
@@ -43,8 +43,7 @@ const badApiRequest = Functions.makeHttpRequest({
 })
 
 // First, execute all the API requests are executed concurrently, then wait for the responses
-const [coinMarketCapResponse, coinGeckoResponse, coinPaprikaResponse, badApiResponse] = await Promise.all([
-  coinMarketCapRequest,
+const [coinGeckoResponse, coinPaprikaResponse, badApiResponse] = await Promise.all([
   coinGeckoRequest,
   coinPaprikaRequest,
   badApiRequest,
@@ -52,11 +51,11 @@ const [coinMarketCapResponse, coinGeckoResponse, coinPaprikaResponse, badApiResp
 
 const prices = []
 
-if (!coinMarketCapResponse.error) {
-  prices.push(coinMarketCapResponse.data.data[coinMarketCapCoinId].quote.USD.price)
-} else {
-  console.log("CoinMarketCap Error")
-}
+// if (!coinMarketCapResponse.error) {
+//   prices.push(coinMarketCapResponse.data.data[coinMarketCapCoinId].quote.USD.price)
+// } else {
+//   console.log("CoinMarketCap Error")
+// }
 if (!coinGeckoResponse.error) {
   prices.push(coinGeckoResponse.data[coinGeckoCoinId].usd)
 } else {
@@ -77,7 +76,7 @@ if (!badApiResponse.error) {
 }
 
 // At least 3 out of 4 prices are needed to aggregate the median price
-if (prices.length < 3) {
+if (prices.length < 2) {
   // If an error is thrown, it will be returned back to the smart contract
   throw Error("More than 1 API failed")
 }

@@ -5,13 +5,22 @@ import {Functions, FunctionsClient} from "./dev/functions/FunctionsClient.sol";
 // import "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol"; // Once published
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 /**
  * @title Automated Functions Consumer contract
  * @notice This contract is a demonstration of using Functions.
  * @notice NOT FOR PRODUCTION USE
  */
-contract AutomatedFunctionsConsumer is FunctionsClient, ConfirmedOwner, AutomationCompatibleInterface {
+contract AutomatedFunctionsConsumer is
+  FunctionsClient,
+  ConfirmedOwner,
+  AutomationCompatibleInterface,
+  ERC20,
+  Initializable
+{
   using Functions for Functions.Request;
 
   bytes public requestCBOR;
@@ -24,6 +33,8 @@ contract AutomatedFunctionsConsumer is FunctionsClient, ConfirmedOwner, Automati
   uint256 public lastUpkeepTimeStamp;
   uint256 public upkeepCounter;
   uint256 public responseCounter;
+  address public s_depositToken = 0xB293DfbDAfdE43cd79B54F98214402ffa895d056;
+  address public s_assetToken = 0x97e8dE167322a3bCA28E8A49BC46F6Ce128FEC68;
 
   event OCRResponse(bytes32 indexed requestId, bytes result, bytes err);
 
@@ -40,7 +51,7 @@ contract AutomatedFunctionsConsumer is FunctionsClient, ConfirmedOwner, Automati
     uint64 _subscriptionId,
     uint32 _fulfillGasLimit,
     uint256 _updateInterval
-  ) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {
+  ) FunctionsClient(oracle) ConfirmedOwner(msg.sender) ERC20("VarVaultDeposit", "VARVLT") {
     updateInterval = _updateInterval;
     subscriptionId = _subscriptionId;
     fulfillGasLimit = _fulfillGasLimit;
@@ -143,5 +154,30 @@ contract AutomatedFunctionsConsumer is FunctionsClient, ConfirmedOwner, Automati
    */
   function updateOracleAddress(address oracle) public onlyOwner {
     setOracle(oracle);
+  }
+
+  function deposit(address account, uint256 amount) external {
+    //Mint vault-notes to account
+    _mint(account, amount);
+
+    //transfer deposit tokens from user to vault
+    TransferHelper.safeTransferFrom(s_depositToken, _msgSender(), address(this), amount);
+  }
+
+  function withdraw(address account, uint256 amount) external {
+    //calculate share of vault
+
+    uint256 depositTokenAmount = ((IERC20(s_depositToken).balanceOf(address(this))) * amount) / totalSupply();
+
+    uint256 assetTokenAmount = ((IERC20(s_assetToken).balanceOf(address(this))) * amount) / totalSupply();
+
+    //burn vault-notes to account
+    _burn(_msgSender(), amount);
+
+    //transfer deposit tokens from vault to account
+    TransferHelper.safeTransfer(s_depositToken, account, depositTokenAmount);
+
+    //transfer asset tokens from vault to account
+    TransferHelper.safeTransfer(s_assetToken, account, assetTokenAmount);
   }
 }

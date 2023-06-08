@@ -1,27 +1,21 @@
 const symbol = args[0]
-const endTime = Date.now() // Current timestamp
-const startTime = endTime - 30 * 24 * 60 * 60 * 1000 // 30 days of data
 
-const binanceRequest = Functions.makeHttpRequest({
-  url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&startTime=${startTime}&endTime=${endTime}`,
-})
+// Get the current date
+const currentDate = new Date()
 
-const [binanceResponse] = await Promise.all([binanceRequest])
+// Get the day, month, and year from the current date
+const day = String(currentDate.getDate()).padStart(2, "0")
+const month = String(currentDate.getMonth() + 1).padStart(2, "0")
+const year = currentDate.getFullYear()
 
-var varAPIInput = {}
+// Format the date string as dd/mm/yyyy
+const formattedDate = `${day}/${month}/${year}`
 
-if (!binanceResponse.error) {
-  varAPIInput = {
-    collateralValue: 10000,
-    risk_level: 0.05,
-    prices: binanceResponse.data.map((item) => {
-      return {
-        rate_close: parseFloat(item[4]),
-      }
-    }),
-  }
-} else {
-  console.log("BinanceAPI Error")
+const varAPIInput = {
+  asset: symbol,
+  end_date: formattedDate,
+  collateralValue: 10000,
+  risk_level: 0.05,
 }
 
 const varAPIRequest = Functions.makeHttpRequest({
@@ -42,7 +36,4 @@ if (!varAPIResponse.error) {
   console.log("VarAPI Error", varAPIResponse.message, varAPIResponse.code)
 }
 
-console.log("varRaw:", varCalc)
-console.log("varCalcProcessed:", parseFloat(varCalc[0].substring(17, 34)))
-
-return Functions.encodeUint256(Math.round(parseFloat(varCalc[0].substring(17, 34))))
+return Functions.encodeUint256(Math.round(parseFloat(varCalc[0]["Daily VaR Implied Vol USD"])))
